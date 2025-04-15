@@ -189,6 +189,20 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("    }");
     sb.AppendLine("    .filters label { font-weight: 600; margin-right: 8px; } ");
 
+    // Add styles for dashboard
+    sb.AppendLine("    .dashboard {");
+    sb.AppendLine("      display: flex; justify-content: space-around; margin-bottom: 20px; background-color: #FFF; padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);");
+    sb.AppendLine("    }");
+    sb.AppendLine("    .dashboard-item {");
+    sb.AppendLine("      text-align: center;");
+    sb.AppendLine("    }");
+    sb.AppendLine("    .dashboard-item h3 {");
+    sb.AppendLine("      margin: 0; font-size: 1.2rem; color: #240057;");
+    sb.AppendLine("    }");
+    sb.AppendLine("    .dashboard-item p {");
+    sb.AppendLine("      margin: 0; font-size: 1.5rem; font-weight: bold; color: #370072;");
+    sb.AppendLine("    }");
+
     // Project card
     sb.AppendLine("    .project {");
     sb.AppendLine("      background-color: #FFF; padding: 10px; border-radius: 8px;");
@@ -253,6 +267,18 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("      <input type=\"number\" ng-model=\"minRuns\" placeholder=\"0\" style=\"width:80px;\" />");
     sb.AppendLine("      <label><input type=\"checkbox\" ng-model=\"hideArchived\" /> Hide 'Archived'</label>");
     sb.AppendLine("      <label><input type=\"checkbox\" ng-model=\"hideDeprecated\" /> Hide 'Deprecated'</label>");
+    sb.AppendLine("    </div>");
+
+    // Add dashboard overview below filters
+    sb.AppendLine("    <div class=\"dashboard\">");
+    sb.AppendLine("      <div class=\"dashboard-item\">");
+    sb.AppendLine("        <h3>Total Projects</h3>");
+    sb.AppendLine("        <p>{{ projects.length }}</p>");
+    sb.AppendLine("      </div>");
+    sb.AppendLine("      <div class=\"dashboard-item\">");
+    sb.AppendLine("        <h3>Total Pipelines</h3>");
+    sb.AppendLine("        <p>{{ projects | sumPipelines }}</p>");
+    sb.AppendLine("      </div>");
     sb.AppendLine("    </div>");
 
     sb.AppendLine("    <div ng-repeat=\"project in projects\" class=\"project\" ng-class=\"{ 'collapsed': project.collapsed }\">");
@@ -364,6 +390,14 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("    };");
 
     sb.AppendLine("  }]);");
+
+    // Add AngularJS filter for summing pipelines
+    sb.AppendLine("  app.filter('sumPipelines', function() {");
+    sb.AppendLine("    return function(projects) {");
+    sb.AppendLine("      return projects.reduce((total, project) => total + (project.Pipelines ? project.Pipelines.length : 0), 0);");
+    sb.AppendLine("    };");
+    sb.AppendLine("  });");
+
     sb.AppendLine("</script>");
 
     sb.AppendLine("</body>");
