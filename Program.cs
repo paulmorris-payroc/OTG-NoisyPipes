@@ -6,13 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Diagnostics;
 
-// ---------------------------------------------
-// Enhanced styling to mimic the look and feel of payroc.com
-// with a modern, professional design.
-// Note: This is an approximation since we don't have direct
-// references to payroc.com's internal styles.
-// ---------------------------------------------
-
 var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
@@ -170,8 +163,6 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("  <style>");
 
     // Attempting a style reminiscent of payroc.com (approximation)
-    // We'll use a navy/purple top bar, modern typography, and clean cards.
-
     sb.AppendLine("    body {");
     sb.AppendLine("      margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #F5F5F7;");
     sb.AppendLine("    }");
@@ -278,7 +269,8 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("          <th ng-click=\"setOrder('Id')\">Pipeline ID <span class=\"sort-indicator\" ng-show=\"orderByField=='Id'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
     sb.AppendLine("          <th ng-click=\"setOrder('Name')\">Name <span class=\"sort-indicator\" ng-show=\"orderByField=='Name'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
     sb.AppendLine("          <th ng-click=\"setOrder('Folder')\">Folder <span class=\"sort-indicator\" ng-show=\"orderByField=='Folder'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
-    sb.AppendLine($"          <th ng-click=\"setOrder('LastRunDate')\">Last Run Date <span class=\"sort-indicator\" ng-show=\"orderByField=='LastRunDate'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
+    // -- Fixed here: do NOT use C# string interpolation for the braces --
+    sb.AppendLine("          <th ng-click=\"setOrder('LastRunDate')\">Last Run Date <span class=\"sort-indicator\" ng-show=\"orderByField=='LastRunDate'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
     sb.AppendLine("          <th ng-click=\"setOrder('LastRunState')\">State <span class=\"sort-indicator\" ng-show=\"orderByField=='LastRunState'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
     sb.AppendLine("          <th ng-click=\"setOrder('LastRunResult')\">Result <span class=\"sort-indicator\" ng-show=\"orderByField=='LastRunResult'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
     sb.AppendLine("          <th ng-click=\"setOrder('NumberOfRuns')\"># of Runs <span class=\"sort-indicator\" ng-show=\"orderByField=='NumberOfRuns'\">{{reverseSort ? '▲' : '▼'}}</span></th>");
@@ -347,7 +339,11 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("      // 4. Search text in name, folder, lastRunDate, result, state...");
     sb.AppendLine("      if ($scope.searchText) {");
     sb.AppendLine("        var txt = $scope.searchText.toLowerCase();");
-    sb.AppendLine("        var combined = (pipe.Name + ' ' +\n                         (pipe.Folder || '') + ' ' +\n                         (pipe.LastRunDate || '') + ' ' +\n                         (pipe.LastRunState || '') + ' ' +\n                         (pipe.LastRunResult || '')).toLowerCase();");
+    sb.AppendLine("        var combined = (pipe.Name + ' ' +");
+    sb.AppendLine("                       (pipe.Folder || '') + ' ' +");
+    sb.AppendLine("                       (pipe.LastRunDate || '') + ' ' +");
+    sb.AppendLine("                       (pipe.LastRunState || '') + ' ' +");
+    sb.AppendLine("                       (pipe.LastRunResult || '')).toLowerCase();");
     sb.AppendLine("        if (!combined.includes(txt)) {");
     sb.AppendLine("          return false;");
     sb.AppendLine("        }");
