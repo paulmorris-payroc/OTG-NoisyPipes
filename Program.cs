@@ -279,6 +279,15 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("        <h3>Total Pipelines</h3>");
     sb.AppendLine("        <p>{{ projects | sumPipelines }}</p>");
     sb.AppendLine("      </div>");
+    // Add additional metrics to the dashboard
+    sb.AppendLine("      <div class=\"dashboard-item\">");
+    sb.AppendLine("        <h3>Pipelines with No Runs</h3>");
+    sb.AppendLine("        <p>{{ projects | noRunPipelines }}</p>");
+    sb.AppendLine("      </div>");
+    sb.AppendLine("      <div class=\"dashboard-item\">");
+    sb.AppendLine("        <h3>Pipelines Stale > 30 Days</h3>");
+    sb.AppendLine("        <p>{{ projects | stalePipelines }}</p>");
+    sb.AppendLine("      </div>");
     sb.AppendLine("    </div>");
 
     sb.AppendLine("    <div ng-repeat=\"project in projects\" class=\"project\" ng-class=\"{ 'collapsed': project.collapsed }\">");
@@ -395,6 +404,21 @@ string GenerateAngularHtmlReport(List<ProjectInfo> projects, int thresholdDays)
     sb.AppendLine("  app.filter('sumPipelines', function() {");
     sb.AppendLine("    return function(projects) {");
     sb.AppendLine("      return projects.reduce((total, project) => total + (project.Pipelines ? project.Pipelines.length : 0), 0);");
+    sb.AppendLine("    };");
+    sb.AppendLine("  });");
+
+    // Add AngularJS filters for additional metrics
+    sb.AppendLine("  app.filter('noRunPipelines', function() {");
+    sb.AppendLine("    return function(projects) {");
+    sb.AppendLine("      return projects.reduce((total, project) => total + (project.Pipelines ? project.Pipelines.filter(p => !p.LastRunDate).length : 0), 0);");
+    sb.AppendLine("    };");
+    sb.AppendLine("  });");
+
+    sb.AppendLine("  app.filter('stalePipelines', function() {");
+    sb.AppendLine("    return function(projects) {");
+    sb.AppendLine("      const thresholdDate = new Date();");
+    sb.AppendLine("      thresholdDate.setDate(thresholdDate.getDate() - 30);");
+    sb.AppendLine("      return projects.reduce((total, project) => total + (project.Pipelines ? project.Pipelines.filter(p => p.LastRunDate && new Date(p.LastRunDate) < thresholdDate).length : 0), 0);");
     sb.AppendLine("    };");
     sb.AppendLine("  });");
 
