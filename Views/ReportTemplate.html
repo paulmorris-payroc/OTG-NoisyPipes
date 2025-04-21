@@ -25,6 +25,23 @@
             margin: auto;
         }
 
+        .summary {
+            background-color: #fff;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 0.95em;
+        }
+
+            .summary div {
+                flex: 1;
+                min-width: 120px;
+            }
+
         .filters {
             display: flex;
             flex-wrap: wrap;
@@ -73,6 +90,22 @@
         .collapsed table {
             display: none;
         }
+
+        .row-green {
+            background-color: #e6ffed;
+        }
+
+        .row-yellow {
+            background-color: #fff5cc;
+        }
+
+        .row-red {
+            background-color: #ffe6e6;
+        }
+
+        .row-gray {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body ng-controller="MainCtrl">
@@ -82,6 +115,7 @@
     </div>
 
     <div class="container">
+
         <div class="filters">
             <input type="text" ng-model="searchText" placeholder="Search pipelines..." />
 
@@ -115,6 +149,13 @@
                 {{ project.projectName }}
             </h2>
 
+            <div class="summary" ng-init="updateVisible(project)">
+                <div><strong>Total Pipelines:</strong> {{ project.summary.total }}</div>
+                <div><strong>Failed:</strong> {{ project.summary.failed }}</div>
+                <div><strong>Never Run:</strong> {{ project.summary.neverRun }}</div>
+                <div><strong>Success Rate:</strong> {{ project.summary.successRate }}%</div>
+            </div>
+
             <table>
                 <thead>
                     <tr>
@@ -129,7 +170,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr ng-repeat="pipe in project.pipelines | filter:pipelineFilter | orderBy:orderByField:reverseSort">
+                    <tr ng-repeat="pipe in project.visiblePipelines = (project.pipelines | filter:pipelineFilter | orderBy:orderByField:reverseSort)"
+                        ng-class="getHealthClass(pipe)">
                         <td>{{ pipe.id }}</td>
                         <td>{{ pipe.name }}</td>
                         <td>{{ pipe.folder }}</td>
@@ -163,36 +205,59 @@
                 }
             };
 
+            $scope.getHealthClass = function (pipe) {
+                if (!pipe.lastRunDate) return 'row-gray';
+                if (pipe.lastRunResult === 'succeeded') return 'row-green';
+                if (pipe.lastRunResult === 'failed') return 'row-red';
+                return 'row-yellow';
+            };
+
             $scope.pipelineFilter = function (pipe) {
                 const name = (pipe.name || '').toLowerCase();
                 const folder = (pipe.folder || '').toLowerCase();
 
-                if ($scope.excludeArchived && (name.includes('archived') || folder.includes('archived'))) {
-                    return false;
-                }
-
-                if ($scope.excludeDeprecated && (name.includes('deprecated') || folder.includes('deprecated'))) {
-                    return false;
-                }
+                if ($scope.excludeArchived && (name.includes('archived') || folder.includes('archived'))) return false;
+                if ($scope.excludeDeprecated && (name.includes('deprecated') || folder.includes('deprecated'))) return false;
 
                 if ($scope.searchText) {
                     const search = $scope.searchText.toLowerCase();
                     const combined = `${pipe.name} ${pipe.folder} ${pipe.lastRunResult} ${pipe.lastRunState}`.toLowerCase();
-                    if (!combined.includes(search)) {
-                        return false;
-                    }
+                    if (!combined.includes(search)) return false;
                 }
 
                 if ($scope.lastRunDays && pipe.lastRunDate) {
                     const days = parseInt($scope.lastRunDays);
                     const now = new Date();
                     const threshold = new Date(now.setDate(now.getDate() - days));
-                    if (new Date(pipe.lastRunDate) < threshold) {
-                        return false;
-                    }
+                    if (new Date(pipe.lastRunDate) < threshold) return false;
                 }
 
                 return true;
+            };
+
+            $scope.updateVisible = function (project) {
+                project.$watcher = $scope.$watch(
+                    function () {
+                        return project.visiblePipelines;
+                    },
+                    function (visible) {
+                        let total = 0, failed = 0, neverRun = 0, success = 0;
+                        angular.forEach(visible || [], function (pipe) {
+                            total++;
+                            if (!pipe.lastRunDate) neverRun++;
+                            else if (pipe.lastRunResult === 'failed') failed++;
+                            else if (pipe.lastRunResult === 'succeeded') success++;
+                        });
+
+                        project.summary = {
+                            total: total,
+                            failed: failed,
+                            neverRun: neverRun,
+                            successRate: total ? Math.round((success / total) * 100) : 0
+                        };
+                    },
+                    true
+                );
             };
         });
     </script>
