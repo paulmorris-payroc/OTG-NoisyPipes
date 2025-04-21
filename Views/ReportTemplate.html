@@ -25,6 +25,20 @@
             margin: auto;
         }
 
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+            .filters input[type="text"],
+            .filters select {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+            }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -41,6 +55,11 @@
             background-color: #eee;
             cursor: pointer;
         }
+
+            th .arrow {
+                margin-left: 5px;
+                font-size: 0.8em;
+            }
 
         .project {
             margin-bottom: 30px;
@@ -63,6 +82,32 @@
     </div>
 
     <div class="container">
+        <div class="filters">
+            <input type="text" ng-model="searchText" placeholder="Search pipelines..." />
+
+            <label>
+                <input type="checkbox" ng-model="excludeArchived" />
+                Exclude Archived
+            </label>
+
+            <label>
+                <input type="checkbox" ng-model="excludeDeprecated" />
+                Exclude Deprecated
+            </label>
+
+            <label>
+                Last Run:
+                <select ng-model="lastRunDays">
+                    <option value="">All Time</option>
+                    <option value="0">Today</option>
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </label>
+        </div>
+
         <div ng-repeat="project in projects" class="project" ng-class="{ 'collapsed': project.collapsed }">
             <h2 class="toggle" ng-click="project.collapsed = !project.collapsed">
                 <span ng-show="!project.collapsed">&#9660;</span>
@@ -73,18 +118,18 @@
             <table>
                 <thead>
                     <tr>
-                        <th ng-click="setOrder('Id')">ID</th>
-                        <th ng-click="setOrder('Name')">Name</th>
-                        <th ng-click="setOrder('Folder')">Folder</th>
-                        <th ng-click="setOrder('LastRunDate')">Last Run</th>
-                        <th ng-click="setOrder('LastRunState')">State</th>
-                        <th ng-click="setOrder('LastRunResult')">Result</th>
-                        <th ng-click="setOrder('NumberOfRuns')"># Runs</th>
+                        <th ng-click="setOrder('id')">ID <span class="arrow" ng-if="orderByField === 'id'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('name')">Name <span class="arrow" ng-if="orderByField === 'name'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('folder')">Folder <span class="arrow" ng-if="orderByField === 'folder'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('lastRunDate')">Last Run <span class="arrow" ng-if="orderByField === 'lastRunDate'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('lastRunState')">State <span class="arrow" ng-if="orderByField === 'lastRunState'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('lastRunResult')">Result <span class="arrow" ng-if="orderByField === 'lastRunResult'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                        <th ng-click="setOrder('numberOfRuns')"># Runs <span class="arrow" ng-if="orderByField === 'numberOfRuns'">{{ reverseSort ? '▲' : '▼' }}</span></th>
                         <th>Link</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr ng-repeat="pipe in project.pipelines | orderBy:orderByField:reverseSort">
+                    <tr ng-repeat="pipe in project.pipelines | filter:pipelineFilter | orderBy:orderByField:reverseSort">
                         <td>{{ pipe.id }}</td>
                         <td>{{ pipe.name }}</td>
                         <td>{{ pipe.folder }}</td>
@@ -100,20 +145,56 @@
     </div>
 
     <script>
-    angular.module('AdoApp', []).controller('MainCtrl', function($scope) {
-      $scope.projects = __PIPELINE_DATA__;
-      $scope.orderByField = 'id';
-      $scope.reverseSort = false;
+        angular.module('AdoApp', []).controller('MainCtrl', function ($scope) {
+            $scope.projects = __PIPELINE_DATA__;
+            $scope.searchText = '';
+            $scope.excludeArchived = false;
+            $scope.excludeDeprecated = false;
+            $scope.lastRunDays = '';
+            $scope.orderByField = 'id';
+            $scope.reverseSort = false;
 
-      $scope.setOrder = function(field) {
-        if ($scope.orderByField === field) {
-          $scope.reverseSort = !$scope.reverseSort;
-        } else {
-          $scope.orderByField = field;
-          $scope.reverseSort = false;
-        }
-      };
-    });
+            $scope.setOrder = function (field) {
+                if ($scope.orderByField === field) {
+                    $scope.reverseSort = !$scope.reverseSort;
+                } else {
+                    $scope.orderByField = field;
+                    $scope.reverseSort = false;
+                }
+            };
+
+            $scope.pipelineFilter = function (pipe) {
+                const name = (pipe.name || '').toLowerCase();
+                const folder = (pipe.folder || '').toLowerCase();
+
+                if ($scope.excludeArchived && (name.includes('archived') || folder.includes('archived'))) {
+                    return false;
+                }
+
+                if ($scope.excludeDeprecated && (name.includes('deprecated') || folder.includes('deprecated'))) {
+                    return false;
+                }
+
+                if ($scope.searchText) {
+                    const search = $scope.searchText.toLowerCase();
+                    const combined = `${pipe.name} ${pipe.folder} ${pipe.lastRunResult} ${pipe.lastRunState}`.toLowerCase();
+                    if (!combined.includes(search)) {
+                        return false;
+                    }
+                }
+
+                if ($scope.lastRunDays && pipe.lastRunDate) {
+                    const days = parseInt($scope.lastRunDays);
+                    const now = new Date();
+                    const threshold = new Date(now.setDate(now.getDate() - days));
+                    if (new Date(pipe.lastRunDate) < threshold) {
+                        return false;
+                    }
+                }
+
+                return true;
+            };
+        });
     </script>
 
 </body>
