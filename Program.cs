@@ -107,7 +107,7 @@ try
                 Id = pipeline.Id,
                 Name = pipeline.Name,
                 Folder = pipeline.Folder,
-                Url = pipeline.Url,
+                Url = $"https://dev.azure.com/{organization}/{project.Name}/_build?definitionId={pipeline.Id}&view=ms.vss-pipelineanalytics-web.new-build-definition-pipeline-analytics-view-cardmetrics",
                 LastRunDate = lastRunDate,
                 LastRunState = lastRunState,
                 LastRunResult = lastRunResult,
