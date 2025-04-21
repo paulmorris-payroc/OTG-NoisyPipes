@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="en" ng-app="AdoApp">
+<head>
+    <meta charset="UTF-8">
+    <title>Azure DevOps Pipeline Report</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #24292e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #eee;
+            cursor: pointer;
+        }
+
+        .project {
+            margin-bottom: 30px;
+        }
+
+        .toggle {
+            cursor: pointer;
+            color: #007acc;
+        }
+
+        .collapsed table {
+            display: none;
+        }
+    </style>
+</head>
+<body ng-controller="MainCtrl">
+
+    <div class="header">
+        <h1>Azure DevOps Pipeline Report</h1>
+    </div>
+
+    <div class="container">
+        <div ng-repeat="project in projects" class="project" ng-class="{ 'collapsed': project.collapsed }">
+            <h2 class="toggle" ng-click="project.collapsed = !project.collapsed">
+                <span ng-show="!project.collapsed">&#9660;</span>
+                <span ng-show="project.collapsed">&#9658;</span>
+                {{ project.projectName }}
+            </h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th ng-click="setOrder('Id')">ID</th>
+                        <th ng-click="setOrder('Name')">Name</th>
+                        <th ng-click="setOrder('Folder')">Folder</th>
+                        <th ng-click="setOrder('LastRunDate')">Last Run</th>
+                        <th ng-click="setOrder('LastRunState')">State</th>
+                        <th ng-click="setOrder('LastRunResult')">Result</th>
+                        <th ng-click="setOrder('NumberOfRuns')"># Runs</th>
+                        <th>Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="pipe in project.pipelines | orderBy:orderByField:reverseSort">
+                        <td>{{ pipe.id }}</td>
+                        <td>{{ pipe.name }}</td>
+                        <td>{{ pipe.folder }}</td>
+                        <td>{{ pipe.lastRunDate ? (pipe.lastRunDate | date:'yyyy-MM-dd HH:mm') : 'No Runs' }}</td>
+                        <td>{{ pipe.lastRunState }}</td>
+                        <td>{{ pipe.lastRunResult }}</td>
+                        <td>{{ pipe.numberOfRuns }}</td>
+                        <td><a ng-href="{{ pipe.url }}" target="_blank">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    angular.module('AdoApp', []).controller('MainCtrl', function($scope) {
+      $scope.projects = __PIPELINE_DATA__;
+      $scope.orderByField = 'id';
+      $scope.reverseSort = false;
+
+      $scope.setOrder = function(field) {
+        if ($scope.orderByField === field) {
+          $scope.reverseSort = !$scope.reverseSort;
+        } else {
+          $scope.orderByField = field;
+          $scope.reverseSort = false;
+        }
+      };
+    });
+    </script>
+
+</body>
+</html>
