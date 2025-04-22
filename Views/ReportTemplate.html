@@ -43,17 +43,31 @@
             }
 
         .filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
             margin-bottom: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            align-items: center;
         }
 
             .filters input[type="text"],
             .filters select {
+                width: 100%;
                 padding: 8px;
                 border: 1px solid #ccc;
                 border-radius: 4px;
+                font-size: 0.95em;
+            }
+
+            .filters label {
+                font-size: 0.9em;
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
 
         table {
@@ -139,16 +153,22 @@
 
         <!-- Filters -->
         <div class="filters">
-            <input type="text" ng-model="searchText" placeholder="Search..." />
+            <div>
+                <input type="text" ng-model="searchText" placeholder="Search..." />
+            </div>
+            <div>
+                <select ng-model="lastRunDays">
+                    <option value="">All Dates</option>
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="30">Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                </select>
+            </div>
             <label><input type="checkbox" ng-model="excludeArchived" /> Exclude Archived</label>
             <label><input type="checkbox" ng-model="excludeDeprecated" /> Exclude Deprecated</label>
-            <select ng-model="lastRunDays">
-                <option value="">All Dates</option>
-                <option value="7">Last 7 Days</option>
-                <option value="14">Last 14 Days</option>
-                <option value="30">Last 30 Days</option>
-                <option value="90">Last 90 Days</option>
-            </select>
+            <label><input type="checkbox" ng-model="onlyNeverRun" /> Only Never Run</label>
+            <label><input type="checkbox" ng-model="excludeNeverRun" /> Exclude Never Run</label>
         </div>
 
         <!-- Spinner while loading -->
@@ -212,6 +232,8 @@
             $scope.searchText = '';
             $scope.excludeArchived = false;
             $scope.excludeDeprecated = false;
+            $scope.onlyNeverRun = false;
+            $scope.excludeNeverRun = false;
             $scope.lastRunDays = '';
             $scope.orderByField = 'id';
             $scope.reverseSort = false;
@@ -235,9 +257,13 @@
             $scope.pipelineFilter = function (pipe) {
                 const name = (pipe.name || '').toLowerCase();
                 const folder = (pipe.folder || '').toLowerCase();
+                const hasNeverRun = !pipe.lastRunDate;
 
                 if ($scope.excludeArchived && (name.includes('archived') || folder.includes('archived'))) return false;
                 if ($scope.excludeDeprecated && (name.includes('deprecated') || folder.includes('deprecated'))) return false;
+
+                if ($scope.onlyNeverRun && !hasNeverRun) return false;
+                if ($scope.excludeNeverRun && hasNeverRun) return false;
 
                 if ($scope.searchText) {
                     const search = $scope.searchText.toLowerCase();
