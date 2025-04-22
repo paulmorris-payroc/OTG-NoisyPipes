@@ -4,6 +4,11 @@ using Microsoft.Extensions.Options;
 using NoisyPipes.Configuration;
 using NoisyPipes.Services.Interfaces;
 using NoisyPipes.Generators.Interfaces;
+using NoisyPipes.Models;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace NoisyPipes.Controllers
 {
@@ -31,25 +36,40 @@ namespace NoisyPipes.Controllers
             _logger = logger;
         }
 
+        // ✅ New: Just serve the HTML template immediately
         [HttpGet("generate")]
-        public async Task<IActionResult> GenerateReport()
+        public IActionResult Generate()
         {
-            _logger.LogInformation("Starting report generation...");
-
             try
             {
-                var projects = await _projectFetcher.FetchProjectsAndPipelinesAsync(_appSettings.Organization);
-                var html = _reportGenerator.Generate(projects);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Views", "ReportTemplate.html");
+                if (!System.IO.File.Exists(filePath))
+                    return NotFound("Report template not found.");
 
-                // Return the HTML directly to the browser
-                return Content(html, "text/html");
+                var htmlContent = System.IO.File.ReadAllText(filePath);
+                return Content(htmlContent, "text/html");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate report.");
+                _logger.LogError(ex, "Failed to load HTML template.");
                 return StatusCode(500, new { error = ex.Message });
             }
         }
 
+        // ✅ Still returns live Azure DevOps pipeline data
+        [HttpGet("/api/pipelines")]
+        public async Task<IActionResult> GetProjectData()
+        {
+            try
+            {
+                List<ProjectInfo> projects = await _projectFetcher.FetchProjectsAndPipelinesAsync(_appSettings.Organization);
+                return Ok(projects);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch pipeline data.");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
     }
 }

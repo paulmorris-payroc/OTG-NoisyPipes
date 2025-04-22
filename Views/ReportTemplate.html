@@ -106,6 +106,27 @@
         .row-gray {
             background-color: #f0f0f0;
         }
+
+        .spinner {
+            border: 6px solid #eee;
+            border-top: 6px solid #007acc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .center-text {
+            text-align: center;
+            padding: 40px;
+        }
     </style>
 </head>
 <body ng-controller="MainCtrl">
@@ -116,79 +137,78 @@
 
     <div class="container">
 
+        <!-- Filters -->
         <div class="filters">
-            <input type="text" ng-model="searchText" placeholder="Search pipelines..." />
-
-            <label>
-                <input type="checkbox" ng-model="excludeArchived" />
-                Exclude Archived
-            </label>
-
-            <label>
-                <input type="checkbox" ng-model="excludeDeprecated" />
-                Exclude Deprecated
-            </label>
-
-            <label>
-                Last Run:
-                <select ng-model="lastRunDays">
-                    <option value="">All Time</option>
-                    <option value="0">Today</option>
-                    <option value="7">Last 7 Days</option>
-                    <option value="14">Last 14 Days</option>
-                    <option value="30">Last 30 Days</option>
-                    <option value="90">Last 90 Days</option>
-                </select>
-            </label>
+            <input type="text" ng-model="searchText" placeholder="Search..." />
+            <label><input type="checkbox" ng-model="excludeArchived" /> Exclude Archived</label>
+            <label><input type="checkbox" ng-model="excludeDeprecated" /> Exclude Deprecated</label>
+            <select ng-model="lastRunDays">
+                <option value="">All Dates</option>
+                <option value="7">Last 7 Days</option>
+                <option value="14">Last 14 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+            </select>
         </div>
 
-        <div ng-repeat="project in projects" class="project" ng-class="{ 'collapsed': project.collapsed }">
-            <h2 class="toggle" ng-click="project.collapsed = !project.collapsed">
-                <span ng-show="!project.collapsed">&#9660;</span>
-                <span ng-show="project.collapsed">&#9658;</span>
-                {{ project.projectName }}
-            </h2>
+        <!-- Spinner while loading -->
+        <div class="center-text" ng-if="loading">
+            <div class="spinner"></div>
+            <p>Loading pipeline data...</p>
+        </div>
 
-            <div class="summary" ng-init="updateVisible(project)">
-                <div><strong>Total Pipelines:</strong> {{ project.summary.total }}</div>
-                <div><strong>Failed:</strong> {{ project.summary.failed }}</div>
-                <div><strong>Never Run:</strong> {{ project.summary.neverRun }}</div>
-                <div><strong>Success Rate:</strong> {{ project.summary.successRate }}%</div>
+        <!-- Report Content -->
+        <div ng-if="!loading">
+            <div class="project" ng-repeat="project in projects" ng-class="{ 'collapsed': project.collapsed }">
+                <h2 class="toggle" ng-click="project.collapsed = !project.collapsed">
+                    <span ng-show="!project.collapsed">&#9660;</span>
+                    <span ng-show="project.collapsed">&#9658;</span>
+                    {{ project.projectName }}
+                </h2>
+
+                <div class="summary" ng-init="updateVisible(project)">
+                    <div><strong>Total Pipelines:</strong> {{ project.summary.total }}</div>
+                    <div><strong>Failed:</strong> {{ project.summary.failed }}</div>
+                    <div><strong>Never Run:</strong> {{ project.summary.neverRun }}</div>
+                    <div><strong>Success Rate:</strong> {{ project.summary.successRate }}%</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th ng-click="setOrder('id')">ID <span class="arrow" ng-if="orderByField === 'id'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('name')">Name <span class="arrow" ng-if="orderByField === 'name'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('folder')">Folder <span class="arrow" ng-if="orderByField === 'folder'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('lastRunDate')">Last Run <span class="arrow" ng-if="orderByField === 'lastRunDate'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('lastRunState')">State <span class="arrow" ng-if="orderByField === 'lastRunState'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('lastRunResult')">Result <span class="arrow" ng-if="orderByField === 'lastRunResult'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th ng-click="setOrder('numberOfRuns')"># Runs <span class="arrow" ng-if="orderByField === 'numberOfRuns'">{{ reverseSort ? '▲' : '▼' }}</span></th>
+                            <th>Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="pipe in project.visiblePipelines = (project.pipelines | filter:pipelineFilter | orderBy:orderByField:reverseSort)"
+                            ng-class="getHealthClass(pipe)">
+                            <td>{{ pipe.id }}</td>
+                            <td>{{ pipe.name }}</td>
+                            <td>{{ pipe.folder }}</td>
+                            <td>{{ pipe.lastRunDate ? (pipe.lastRunDate | date:'yyyy-MM-dd HH:mm') : 'No Runs' }}</td>
+                            <td>{{ pipe.lastRunState }}</td>
+                            <td>{{ pipe.lastRunResult }}</td>
+                            <td>{{ pipe.numberOfRuns }}</td>
+                            <td><a ng-href="{{ pipe.url }}" target="_blank">View</a></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th ng-click="setOrder('id')">ID <span class="arrow" ng-if="orderByField === 'id'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('name')">Name <span class="arrow" ng-if="orderByField === 'name'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('folder')">Folder <span class="arrow" ng-if="orderByField === 'folder'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('lastRunDate')">Last Run <span class="arrow" ng-if="orderByField === 'lastRunDate'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('lastRunState')">State <span class="arrow" ng-if="orderByField === 'lastRunState'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('lastRunResult')">Result <span class="arrow" ng-if="orderByField === 'lastRunResult'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th ng-click="setOrder('numberOfRuns')"># Runs <span class="arrow" ng-if="orderByField === 'numberOfRuns'">{{ reverseSort ? '▲' : '▼' }}</span></th>
-                        <th>Link</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-repeat="pipe in project.visiblePipelines = (project.pipelines | filter:pipelineFilter | orderBy:orderByField:reverseSort)"
-                        ng-class="getHealthClass(pipe)">
-                        <td>{{ pipe.id }}</td>
-                        <td>{{ pipe.name }}</td>
-                        <td>{{ pipe.folder }}</td>
-                        <td>{{ pipe.lastRunDate ? (pipe.lastRunDate | date:'yyyy-MM-dd HH:mm') : 'No Runs' }}</td>
-                        <td>{{ pipe.lastRunState }}</td>
-                        <td>{{ pipe.lastRunResult }}</td>
-                        <td>{{ pipe.numberOfRuns }}</td>
-                        <td><a ng-href="{{ pipe.url }}" target="_blank">View</a></td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
 
     <script>
-        angular.module('AdoApp', []).controller('MainCtrl', function ($scope) {
-            $scope.projects = __PIPELINE_DATA__;
+        angular.module('AdoApp', []).controller('MainCtrl', function ($scope, $http) {
+            $scope.loading = true;
+            $scope.projects = [];
+
             $scope.searchText = '';
             $scope.excludeArchived = false;
             $scope.excludeDeprecated = false;
@@ -259,8 +279,23 @@
                     true
                 );
             };
+
+            function loadData() {
+                $http.get('/api/pipelines').then(function (response) {
+                    $scope.projects = response.data || [];
+                    $scope.projects.forEach(function (project) {
+                        project.collapsed = false;
+                        $scope.updateVisible(project);
+                    });
+                }).catch(function (err) {
+                    console.error("Failed to load pipelines:", err);
+                }).finally(function () {
+                    $scope.loading = false;
+                });
+            }
+
+            loadData();
         });
     </script>
-
 </body>
 </html>
