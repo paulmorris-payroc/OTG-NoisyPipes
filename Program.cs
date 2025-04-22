@@ -6,6 +6,10 @@ using NoisyPipes.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
 // Bind appsettings.json config section to strongly-typed class
 builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AzureDevOps"));
 
@@ -35,5 +39,11 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/api/report/generate", permanent: false);
+    return Task.CompletedTask;
+});
 
 app.Run();
